@@ -1,0 +1,26 @@
+{% extends "posts/base.html" %}
+
+{% block title %}Профиль — Marketplace{% endblock %}
+
+{% block content %}
+  <h1>Профиль</h1>
+
+  <div class="card" style="margin-top: 1rem;">
+    <p><strong>Пользователь:</strong> {{ user.username }}</p>
+    <p><strong>Email:</strong> {{ user.email|default:"не указан" }}</p>
+
+    {% if author %}
+      <p><strong>Имя автора:</strong> {{ author.name }}</p>
+      {% if profile %}
+        <p><strong>О себе:</strong> {{ profile.bio|default:"—" }}</p>
+      {% endif %}
+    {% else %}
+      <p class="meta">Профиль автора ещё не создан.</p>
+    {% endif %}
+  </div>
+
+  <p style="margin-top: 1rem;">
+    <a class="btn" href="{% url 'posts:post_create' %}">Добавить объявление</a>
+    <a class="btn btn-secondary" href="{% url 'posts:post_list' %}" style="margin-left: 0.5rem;">К объявлениям</a>
+  </p>
+{% endblock %}
