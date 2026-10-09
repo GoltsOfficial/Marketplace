@@ -5,3 +5,7 @@ urlpatterns = [
     # path('api/v1/posts/', include('apps.main.urls')),
     path('admin/', admin.site.urls),
 ]
+urlpatterns += [
+    path('api/v1/posts/', include('apps.posts.urls')),
+    path('api/v1/accounts/', include('apps.accounts.urls')),
+]
