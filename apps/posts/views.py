@@ -1,4 +1,4 @@
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, CreateView
 
 from .models import Post
 
@@ -48,3 +48,11 @@ class PostListView(ListView):
 class PostDetailView(DetailView):
     model = Post
     template_name = "blog/post_detail.html"
+
+
+class PostCreateView(CreateView):
+    pass
+
+
+def post_by_slug(self, slug):
+    ...
