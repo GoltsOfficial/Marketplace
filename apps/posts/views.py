@@ -3,6 +3,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Post
+from apps.accounts.models import Author, Profile
 
 
 class PostListView(ListView):
@@ -31,7 +32,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy("posts:post_list")
 
     def form_valid(self, form):
-        # Привязываем автора, если есть профиль Author у пользователя
-        # Пока просто сохраняем без автора или можно расширить
-        form.instance.author_id = 1  # временно, пока нет связи User-Author
+        author, _ = Author.objects.get_or_create(name=self.request.user.username)
+        Profile.objects.get_or_create(author=author, defaults={"bio": ""})
+        form.instance.author = author
         return super().form_valid(form)
