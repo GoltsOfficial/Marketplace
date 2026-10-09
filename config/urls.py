@@ -9,11 +9,11 @@ urlpatterns = [
     path('accounts/', include('apps.accounts.urls')),
 ]
 
-# API (оставляем на будущее)
-urlpatterns += [
-    path('api/v1/posts/', include('apps.posts.urls')),
-    path('api/v1/accounts/', include('apps.accounts.urls')),
-]
+# # API (оставляем на будущее)
+# urlpatterns += [
+#     path('api/v1/posts/', include('apps.posts.urls')),
+#     path('api/v1/accounts/', include('apps.accounts.urls')),
+# ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
