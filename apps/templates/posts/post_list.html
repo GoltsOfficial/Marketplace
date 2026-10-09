@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}Список постов{% endblock %}
+
+{% block content %}
+  <h1>Посты</h1>
+  {% for post in posts %}
+    <article>{{ post.title }}</article>
+  {% endfor %}
+{% endblock %}
