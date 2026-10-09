@@ -1,0 +1,18 @@
+{% extends "posts/base.html" %}
+
+{% block title %}Вход — Marketplace{% endblock %}
+
+{% block content %}
+  <h1>Вход</h1>
+
+  <div class="card" style="margin-top: 1rem; max-width: 400px;">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn">Войти</button>
+    </form>
+    <p style="margin-top: 1rem;" class="meta">
+      Нет аккаунта? <a href="{% url 'accounts:register' %}">Зарегистрироваться</a>
+    </p>
+  </div>
+{% endblock %}
