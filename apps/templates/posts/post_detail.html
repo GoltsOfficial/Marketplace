@@ -1,8 +1,25 @@
-{% extends "base.html" %}
+{% extends "posts/base.html" %}
 
-{% block title %}Данные поста{% endblock %}
+{% block title %}{{ post.title }} — Marketplace{% endblock %}
 
 {% block content %}
-<h1>Пост {{post.title}}</h1>
+  <article class="card">
+    <h1>{{ post.title }}</h1>
+    <p class="meta">Автор: {{ post.author.name }} · {{ post.created_at|date:"d.m.Y H:i" }}</p>
 
+    {% if post.tags.all %}
+      <p class="meta" style="margin-top: 0.5rem;">
+        Теги:
+        {% for tag in post.tags.all %}
+          <span style="background:#e9ecef;padding:0.2rem 0.5rem;border-radius:4px;margin-right:0.25rem;">{{ tag.name }}</span>
+        {% endfor %}
+      </p>
+    {% endif %}
+
+    <div style="margin-top: 1.5rem; white-space: pre-wrap;">{{ post.body }}</div>
+  </article>
+
+  <p style="margin-top: 1rem;">
+    <a class="btn btn-secondary" href="{% url 'posts:post_list' %}">← К списку</a>
+  </p>
 {% endblock %}
