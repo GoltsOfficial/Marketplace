@@ -1,0 +1,16 @@
+{% extends "posts/base.html" %}
+
+{% block title %}Новое объявление — Marketplace{% endblock %}
+
+{% block content %}
+  <h1>Добавить объявление</h1>
+
+  <div class="card" style="margin-top: 1rem;">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn">Опубликовать</button>
+      <a href="{% url 'posts:post_list' %}" class="btn btn-secondary" style="margin-left: 0.5rem;">Отмена</a>
+    </form>
+  </div>
+{% endblock %}
