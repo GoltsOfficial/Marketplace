@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
@@ -67,15 +67,30 @@ def login_view(request):
 
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+
+        # Сначала обычная проверка
         if form.is_valid():
             user = form.get_user()
-            # На всякий случай активируем, если старый аккаунт был с is_active=False
-            if not user.is_active:
-                user.is_active = True
-                user.save(update_fields=["is_active"])
             login(request, user)
             messages.success(request, f"Добро пожаловать, {user.username}!")
             return redirect("posts:post_list")
+
+        # Старые аккаунты с is_active=False — активируем и пускаем
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            user = None
+
+        if user is not None and user.check_password(password):
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            messages.success(request, f"Добро пожаловать, {user.username}!")
+            return redirect("posts:post_list")
+
         messages.error(request, "Неверный логин или пароль.")
     else:
         form = AuthenticationForm()
@@ -133,7 +148,10 @@ def confirm_email(request, uidb64, token):
         if not user.is_active:
             user.is_active = True
             user.save(update_fields=["is_active"])
-        messages.success(request, "Email успешно подтверждён! Теперь можно публиковать объявления.")
+        messages.success(
+            request,
+            "Email успешно подтверждён! Теперь можно публиковать объявления.",
+        )
         if request.user.is_authenticated:
             return redirect("accounts:profile")
         return redirect("accounts:login")
