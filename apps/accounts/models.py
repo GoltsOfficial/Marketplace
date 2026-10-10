@@ -25,6 +25,9 @@ class Profile(models.Model):
     city = models.CharField("Город", max_length=100, blank=True)
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
     email_confirmed = models.BooleanField("Email подтверждён", default=False)
+    last_confirm_email_sent = models.DateTimeField(
+        "Последняя отправка подтверждения", null=True, blank=True
+    )
 
     def __str__(self):
         return f"Профиль {self.author}"
