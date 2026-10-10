@@ -24,6 +24,7 @@ class Profile(models.Model):
     phone = models.CharField("Телефон", max_length=20, blank=True)
     city = models.CharField("Город", max_length=100, blank=True)
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
+    email_confirmed = models.BooleanField("Email подтверждён", default=False)
 
     def __str__(self):
         return f"Профиль {self.author}"
