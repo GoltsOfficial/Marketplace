@@ -32,7 +32,10 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy("posts:post_list")
 
     def form_valid(self, form):
-        author, _ = Author.objects.get_or_create(name=self.request.user.username)
-        Profile.objects.get_or_create(author=author, defaults={"bio": ""})
+        author, _ = Author.objects.get_or_create(
+            user=self.request.user,
+            defaults={"name": self.request.user.username},
+        )
+        Profile.objects.get_or_create(author=author)
         form.instance.author = author
         return super().form_valid(form)
