@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -7,6 +9,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.conf import settings
@@ -14,6 +17,8 @@ from django.urls import reverse
 
 from .forms import RegisterForm, UserForm, ProfileForm
 from .models import Author, Profile
+
+RESEND_COOLDOWN = timedelta(minutes=5)
 
 
 def _send_confirm_email(request, user):
@@ -37,6 +42,25 @@ def _send_confirm_email(request, user):
     )
 
 
+def _get_or_create_profile(user):
+    author, _ = Author.objects.get_or_create(
+        user=user,
+        defaults={"name": user.username},
+    )
+    profile, _ = Profile.objects.get_or_create(author=author)
+    return author, profile
+
+
+def _cooldown_remaining_seconds(profile):
+    if not profile.last_confirm_email_sent:
+        return 0
+    elapsed = timezone.now() - profile.last_confirm_email_sent
+    left = RESEND_COOLDOWN - elapsed
+    if left.total_seconds() <= 0:
+        return 0
+    return int(left.total_seconds())
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("posts:post_list")
@@ -45,6 +69,10 @@ def login_view(request):
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+            # На всякий случай активируем, если старый аккаунт был с is_active=False
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
             login(request, user)
             messages.success(request, f"Добро пожаловать, {user.username}!")
             return redirect("posts:post_list")
@@ -64,21 +92,22 @@ def register_view(request):
         if form.is_valid():
             user = form.save()
             author = Author.objects.create(user=user, name=user.username)
-            Profile.objects.create(author=author, email_confirmed=False)
+            profile = Profile.objects.create(author=author, email_confirmed=False)
 
-            # Письмо на указанный email (SMTP)
             try:
                 _send_confirm_email(request, user)
+                profile.last_confirm_email_sent = timezone.now()
+                profile.save(update_fields=["last_confirm_email_sent"])
                 messages.success(
                     request,
-                    "Регистрация успешна! Мы отправили письмо с подтверждением на ваш email. "
-                    "Можно сразу войти в аккаунт.",
+                    "Регистрация успешна! Письмо с подтверждением отправлено на email. "
+                    "Вход уже доступен; публиковать объявления — после подтверждения.",
                 )
             except Exception as e:
                 messages.warning(
                     request,
-                    f"Аккаунт создан, но письмо не удалось отправить: {e}. "
-                    "Войдите и нажмите «Отправить письмо снова» в профиле.",
+                    f"Аккаунт создан, но письмо не отправилось: {e}. "
+                    "Повторите отправку в профиле.",
                 )
 
             login(request, user)
@@ -98,13 +127,13 @@ def confirm_email(request, uidb64, token):
         user = None
 
     if user is not None and default_token_generator.check_token(user, token):
-        author, _ = Author.objects.get_or_create(
-            user=user, defaults={"name": user.username}
-        )
-        profile, _ = Profile.objects.get_or_create(author=author)
+        _, profile = _get_or_create_profile(user)
         profile.email_confirmed = True
         profile.save(update_fields=["email_confirmed"])
-        messages.success(request, "Email успешно подтверждён!")
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+        messages.success(request, "Email успешно подтверждён! Теперь можно публиковать объявления.")
         if request.user.is_authenticated:
             return redirect("accounts:profile")
         return redirect("accounts:login")
@@ -121,11 +150,8 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    author, _ = Author.objects.get_or_create(
-        user=request.user,
-        defaults={"name": request.user.username},
-    )
-    profile, _ = Profile.objects.get_or_create(author=author)
+    _, profile = _get_or_create_profile(request.user)
+    cooldown_left = _cooldown_remaining_seconds(profile)
     return render(
         request,
         "accounts/profile.html",
@@ -133,17 +159,14 @@ def profile_view(request):
             "profile": profile,
             "user": request.user,
             "email_confirmed": profile.email_confirmed,
+            "cooldown_left": cooldown_left,
         },
     )
 
 
 @login_required
 def profile_edit(request):
-    author, _ = Author.objects.get_or_create(
-        user=request.user,
-        defaults={"name": request.user.username},
-    )
-    profile, _ = Profile.objects.get_or_create(author=author)
+    author, profile = _get_or_create_profile(request.user)
     old_email = request.user.email
 
     if request.method == "POST":
@@ -152,12 +175,13 @@ def profile_edit(request):
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
-            # Если email сменили — снова нужно подтверждение
             if request.user.email != old_email:
                 profile.email_confirmed = False
                 profile.save(update_fields=["email_confirmed"])
                 try:
                     _send_confirm_email(request, request.user)
+                    profile.last_confirm_email_sent = timezone.now()
+                    profile.save(update_fields=["last_confirm_email_sent"])
                     messages.info(
                         request,
                         "Email изменён. На новый адрес отправлено письмо подтверждения.",
@@ -189,11 +213,7 @@ def profile_edit(request):
 
 @login_required
 def resend_confirmation(request):
-    author, _ = Author.objects.get_or_create(
-        user=request.user,
-        defaults={"name": request.user.username},
-    )
-    profile, _ = Profile.objects.get_or_create(author=author)
+    _, profile = _get_or_create_profile(request.user)
 
     if profile.email_confirmed:
         messages.info(request, "Email уже подтверждён.")
@@ -203,8 +223,20 @@ def resend_confirmation(request):
         messages.error(request, "Укажите email в профиле.")
         return redirect("accounts:profile_edit")
 
+    left = _cooldown_remaining_seconds(profile)
+    if left > 0:
+        minutes = left // 60
+        seconds = left % 60
+        messages.warning(
+            request,
+            f"Повторная отправка будет доступна через {minutes}:{seconds:02d}.",
+        )
+        return redirect("accounts:profile")
+
     try:
         _send_confirm_email(request, request.user)
+        profile.last_confirm_email_sent = timezone.now()
+        profile.save(update_fields=["last_confirm_email_sent"])
         messages.success(request, "Письмо с подтверждением отправлено на ваш email.")
     except Exception as e:
         messages.error(request, f"Не удалось отправить письмо: {e}")
