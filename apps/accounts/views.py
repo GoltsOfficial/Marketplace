@@ -1,10 +1,6 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-
-from .models import Author, Profile
+from django.contrib.auth import login, logout
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
 
 def login_view(request):
@@ -52,17 +48,36 @@ def logout_view(request):
     return redirect("posts:post_list")
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from .models import Author, Profile
+from .forms import UserForm, ProfileForm
+
+
 @login_required
 def profile_view(request):
-    try:
-        author = Author.objects.get(name=request.user.username)
-        profile = getattr(author, "profile", None)
-    except Author.DoesNotExist:
-        author = None
-        profile = None
+    author, _ = Author.objects.get_or_create(user=request.user)
+    profile, _ = Profile.objects.get_or_create(author=author)
+    return render(request, "accounts/profile.html", {"profile": profile})
 
-    return render(request, "accounts/profile.html", {
-        "author": author,
-        "profile": profile,
-        "user": request.user,
+
+@login_required
+def profile_edit(request):
+    author, _ = Author.objects.get_or_create(user=request.user)
+    profile, _ = Profile.objects.get_or_create(author=author)
+
+    if request.method == "POST":
+        user_form = UserForm(request.POST, instance=request.user)
+        profile_form = ProfileForm(request.POST, instance=profile)
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            return redirect("accounts:profile")
+    else:
+        user_form = UserForm(instance=request.user)
+        profile_form = ProfileForm(instance=profile)
+
+    return render(request, "accounts/profile_edit.html", {
+        "user_form": user_form,
+        "profile_form": profile_form,
     })

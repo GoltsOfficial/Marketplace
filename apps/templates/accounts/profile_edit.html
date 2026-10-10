@@ -1,0 +1,16 @@
+{# accounts/templates/accounts/profile_edit.html #}
+{% extends "posts/base.html" %}
+
+<h2>Редактирование профиля</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <h3>Аккаунт</h3>
+    {{ user_form.as_p }}
+
+    <h3>Профиль</h3>
+    {{ profile_form.as_p }}
+
+    <button type="submit">Сохранить</button>
+</form>
