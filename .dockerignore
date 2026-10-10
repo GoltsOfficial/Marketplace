@@ -1,0 +1,14 @@
+.venv
+venv
+__pycache__
+*.pyc
+.git
+.idea
+.vscode
+.env
+*.log
+logs
+staticfiles
+media
+.pytest_cache
+uv.lock
