@@ -102,14 +102,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Additional locations of static files (только если директория существует)
 STATICFILES_DIRS = []
-
-# Проверяем, существует ли директория static в проекте
 if (BASE_DIR / 'static').exists():
     STATICFILES_DIRS.append(BASE_DIR / 'static')
 
-# Static files finders
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
@@ -119,11 +115,7 @@ STATICFILES_FINDERS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Custom User Model
-# AUTH_USER_MODEL = 'accounts.User'
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -152,7 +144,7 @@ REST_FRAMEWORK = {
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Укажите порт, на котором работает ваш Vue.js
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://domen.com",
     "https://www.domen.com",
@@ -181,19 +173,21 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# URL фронтенда для редиректов
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 
-# Email настройки (для уведомлений)
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+# Email — реальная отправка через SMTP (не console)
+EMAIL_BACKEND = config(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.smtp.EmailBackend',
+)
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@newssite.com')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER or 'noreply@marketplace.local')
 
-# Celery настройки (опционально)
+# Celery
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
 CELERY_TIMEZONE = TIME_ZONE
@@ -201,27 +195,26 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 
-# Celery Beat настройки для периодических задач
 CELERY_BEAT_SCHEDULE = {
     'check-expired-subscriptions': {
         'task': 'apps.subscribe.tasks.check_expired_subscriptions',
-        'schedule': 3600.0,  # Каждый час
+        'schedule': 3600.0,
     },
     'send-subscription-expiry-reminders': {
         'task': 'apps.subscribe.tasks.send_subscription_expiry_reminder',
-        'schedule': 86400.0,  # Каждый день
+        'schedule': 86400.0,
     },
     'cleanup-old-payments': {
         'task': 'apps.payment.tasks.cleanup_old_payments',
-        'schedule': 604800.0,  # Каждую неделю
+        'schedule': 604800.0,
     },
     'cleanup-old-webhook-events': {
         'task': 'apps.payment.tasks.cleanup_old_webhook_events',
-        'schedule': 86400.0,  # Каждый день
+        'schedule': 86400.0,
     },
     'retry-failed-webhook-events': {
         'task': 'apps.payment.tasks.retry_failed_webhook_events',
-        'schedule': 3600.0,  # Каждый час
+        'schedule': 3600.0,
     },
 }
 
