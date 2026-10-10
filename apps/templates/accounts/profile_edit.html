@@ -1,16 +1,22 @@
-{# accounts/templates/accounts/profile_edit.html #}
 {% extends "posts/base.html" %}
 
-<h2>Редактирование профиля</h2>
+{% block title %}Редактирование профиля — Marketplace{% endblock %}
 
-<form method="post">
-    {% csrf_token %}
+{% block content %}
+  <h1>Редактирование профиля</h1>
 
-    <h3>Аккаунт</h3>
-    {{ user_form.as_p }}
+  <div class="card" style="margin-top: 1rem; max-width: 500px;">
+    <form method="post">
+      {% csrf_token %}
 
-    <h3>Профиль</h3>
-    {{ profile_form.as_p }}
+      <h3 style="margin-bottom: 0.75rem;">Аккаунт</h3>
+      {{ user_form.as_p }}
 
-    <button type="submit">Сохранить</button>
-</form>
+      <h3 style="margin: 1.25rem 0 0.75rem;">Профиль</h3>
+      {{ profile_form.as_p }}
+
+      <button type="submit" class="btn">Сохранить</button>
+      <a href="{% url 'accounts:profile' %}" class="btn btn-secondary" style="margin-left: 0.5rem;">Отмена</a>
+    </form>
+  </div>
+{% endblock %}
