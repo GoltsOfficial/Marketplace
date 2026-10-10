@@ -6,4 +6,4 @@ class AccountsConfig(AppConfig):
     name = 'apps.accounts'
 
     def ready(self):
-        import apps.accounts.models  # noqa — для сигналов
+        import backend.apps.accounts.models  # noqa — для сигналов

@@ -5,7 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 
 from .models import Post
-from apps.accounts.models import Author, Profile
+from backend.apps.accounts.models import Author, Profile
 
 
 class PostListView(ListView):
