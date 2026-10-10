@@ -25,7 +25,55 @@
     0%, 100% { box-shadow: 0 0 4px 1px rgba(229, 57, 53, 0.5); opacity: 1; }
     50% { box-shadow: 0 0 10px 4px rgba(229, 57, 53, 0.9); opacity: 0.85; }
   }
-  .status-line { display: flex; align-items: center; gap: 0.25rem; margin: 0.5rem 0; }
+  .status-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+  }
+  .btn-resend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 6px;
+    background: #1a1a2e;
+    color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, opacity 0.2s;
+  }
+  .btn-resend:hover:not(.disabled) {
+    background: #16213e;
+  }
+  .btn-resend.disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .btn-resend .hourglass {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+  }
+  .btn-resend.disabled .hourglass {
+    animation: hourglass-flip 2s ease-in-out infinite;
+  }
+  @keyframes hourglass-flip {
+    0%   { transform: rotate(0deg); }
+    40%  { transform: rotate(0deg); }
+    50%  { transform: rotate(180deg); }
+    90%  { transform: rotate(180deg); }
+    100% { transform: rotate(360deg); }
+  }
+  #cooldown-timer {
+    font-variant-numeric: tabular-nums;
+    min-width: 3.2em;
+  }
 </style>
 
 <h1>Профиль</h1>
@@ -43,9 +91,22 @@
     {% else %}
       <span class="status-dot red"></span>
       <span style="color: #c62828;">Не подтверждён</span>
-      <a href="{% url 'accounts:resend_confirmation' %}" class="btn btn-secondary" style="margin-left: 0.75rem; font-size: 0.85rem; padding: 0.3rem 0.6rem;">
-        Отправить письмо снова
-      </a>
+
+      {% if cooldown_left > 0 %}
+        <span class="btn-resend disabled" id="resend-btn" aria-disabled="true">
+          <img class="hourglass"
+               src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/hourglass-split.svg"
+               alt="" width="16" height="16">
+          Повтор через <span id="cooldown-timer">--:--</span>
+        </span>
+      {% else %}
+        <a href="{% url 'accounts:resend_confirmation' %}" class="btn-resend" id="resend-btn">
+          <img class="hourglass"
+               src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/hourglass-split.svg"
+               alt="" width="16" height="16">
+          Отправить письмо снова
+        </a>
+      {% endif %}
     {% endif %}
   </div>
 
@@ -59,4 +120,41 @@
   <a class="btn" href="{% url 'accounts:profile_edit' %}">Редактировать профиль</a>
   <a class="btn btn-secondary" href="{% url 'posts:post_list' %}" style="margin-left: 0.5rem;">К объявлениям</a>
 </p>
+
+{% if not email_confirmed and cooldown_left > 0 %}
+<script>
+(function () {
+  var left = {{ cooldown_left|default:0 }};
+  var timerEl = document.getElementById('cooldown-timer');
+  var btn = document.getElementById('resend-btn');
+  if (!timerEl || !btn || left <= 0) return;
+
+  function fmt(sec) {
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  timerEl.textContent = fmt(left);
+
+  var id = setInterval(function () {
+    left -= 1;
+    if (left <= 0) {
+      clearInterval(id);
+      // Разблокируем кнопку: заменяем на ссылку
+      var a = document.createElement('a');
+      a.href = '{% url "accounts:resend_confirmation" %}';
+      a.className = 'btn-resend';
+      a.id = 'resend-btn';
+      a.innerHTML =
+        '<img class="hourglass" src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/hourglass-split.svg" alt="" width="16" height="16">' +
+        ' Отправить письмо снова';
+      btn.parentNode.replaceChild(a, btn);
+      return;
+    }
+    timerEl.textContent = fmt(left);
+  }, 1000);
+})();
+</script>
+{% endif %}
 {% endblock %}
