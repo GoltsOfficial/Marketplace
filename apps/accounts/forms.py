@@ -30,7 +30,7 @@ class RegisterForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"]
-        user.is_active = False  # активируем после подтверждения email
+        user.is_active = True  # вход работает сразу, как раньше
         if commit:
             user.save()
         return user
