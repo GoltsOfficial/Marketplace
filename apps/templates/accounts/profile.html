@@ -3,13 +3,60 @@
 {% block title %}Профиль — Marketplace{% endblock %}
 
 {% block content %}
-<h2>Профиль {{ profile.author.user.username }}</h2>
-<p>Имя: {{ profile.author.user.first_name }} {{ profile.author.user.last_name }}</p>
-<p>Email: {{ profile.author.user.email }}</p>
-<p>О себе: {{ profile.bio }}</p>
-<p>Телефон: {{ profile.phone }}</p>
-<p>Город: {{ profile.city }}</p>
-<p>Дата рождения: {{ profile.birth_date }}</p>
+<style>
+  .status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .status-dot.red {
+    background: #e53935;
+    box-shadow: 0 0 6px 2px rgba(229, 57, 53, 0.7);
+    animation: pulse-red 1.4s ease-in-out infinite;
+  }
+  .status-dot.green {
+    background: #43a047;
+    box-shadow: 0 0 6px 2px rgba(67, 160, 71, 0.6);
+  }
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 4px 1px rgba(229, 57, 53, 0.5); opacity: 1; }
+    50% { box-shadow: 0 0 10px 4px rgba(229, 57, 53, 0.9); opacity: 0.85; }
+  }
+  .status-line { display: flex; align-items: center; gap: 0.25rem; margin: 0.5rem 0; }
+</style>
 
-<a href="{% url 'accounts:profile_edit' %}">Редактировать</a>
+<h1>Профиль</h1>
+
+<div class="card" style="margin-top: 1rem;">
+  <p><strong>Пользователь:</strong> {{ user.username }}</p>
+  <p><strong>Имя:</strong> {{ user.first_name|default:"—" }} {{ user.last_name }}</p>
+  <p><strong>Email:</strong> {{ user.email|default:"не указан" }}</p>
+
+  <div class="status-line">
+    <strong>Статус email:</strong>
+    {% if email_confirmed %}
+      <span class="status-dot green"></span>
+      <span style="color: #2e7d32;">Подтверждено</span>
+    {% else %}
+      <span class="status-dot red"></span>
+      <span style="color: #c62828;">Не подтверждён</span>
+      <a href="{% url 'accounts:resend_confirmation' %}" class="btn btn-secondary" style="margin-left: 0.75rem; font-size: 0.85rem; padding: 0.3rem 0.6rem;">
+        Отправить письмо снова
+      </a>
+    {% endif %}
+  </div>
+
+  <p><strong>О себе:</strong> {{ profile.bio|default:"—" }}</p>
+  <p><strong>Телефон:</strong> {{ profile.phone|default:"—" }}</p>
+  <p><strong>Город:</strong> {{ profile.city|default:"—" }}</p>
+  <p><strong>Дата рождения:</strong> {{ profile.birth_date|date:"d.m.Y"|default:"—" }}</p>
+</div>
+
+<p style="margin-top: 1rem;">
+  <a class="btn" href="{% url 'accounts:profile_edit' %}">Редактировать профиль</a>
+  <a class="btn btn-secondary" href="{% url 'posts:post_list' %}" style="margin-left: 0.5rem;">К объявлениям</a>
+</p>
 {% endblock %}
